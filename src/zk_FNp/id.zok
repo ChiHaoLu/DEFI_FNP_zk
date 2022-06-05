@@ -1,0 +1,19 @@
+import "./calculator-p.zok" as vm
+from "./calculator-p.zok" import OP_ADD, OP_SUB, OP_MUL, OP_PUSH, OP_NOP
+
+def main(field address) -> field:
+    field result = vm([address, 0, 0, 0, 0, 0, 0, 0], 1, [
+        OP_PUSH, 3,
+        OP_ADD,
+        OP_PUSH, 5,
+        OP_MUL,
+        OP_PUSH, 6,
+        OP_SUB,
+        OP_PUSH, 4,
+        OP_MUL,
+        OP_NOP, OP_NOP, OP_NOP, OP_NOP
+    ])
+    
+    assert(result == ((address + 3) * 5 - 6) * 4)
+
+    return result

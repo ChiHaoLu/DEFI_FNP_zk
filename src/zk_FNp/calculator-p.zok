@@ -1,0 +1,55 @@
+// -- Parameters --
+const u32 MAX_OPS = 16
+const u32 MAX_STACK_ = 8
+// workaround for not having short-circuit in the branch
+const u32 STACK_OFFSET = 8
+const u32 MAX_STACK = MAX_STACK_ + STACK_OFFSET
+const u32 MAX_OPS_ = MAX_OPS + 1
+
+// --- OPs ---
+const field OP_PUSH     =   42  // push next value into the stack
+const field OP_NOP      =   97  // noop
+const field OP_ADD      =   147 // add top two values in the stack and push back the result
+const field OP_SUB      =   148 // substract top value from the second value and push back the result
+const field OP_MUL      =   149 // multiply top two values in the stack and push back the result
+
+// --- instructions ---
+  
+def exec(field op, field[MAX_STACK] stack, u32 idx) -> (field[MAX_STACK], u32):
+
+  stack[idx - 1] = op == OP_ADD ? stack[idx - 1] + stack[idx - 2] : stack[idx - 1]
+  stack[idx - 1] = op == OP_MUL ? stack[idx - 1] * stack[idx - 2] : stack[idx - 1]
+  stack[idx - 1] = op == OP_SUB ? stack[idx - 2] - stack[idx - 1] : stack[idx - 1]
+    
+  return stack, idx
+
+def opPushStack(field[MAX_STACK] stack, u32 stackIdx, field[MAX_OPS_] data, u32 dataIdx) -> field[MAX_STACK]:
+  stack[stackIdx] = data[dataIdx+1]
+  return stack
+
+def opPushIdx(u32 stackIdx) -> u32:
+  return stackIdx+1
+
+def execWithData(field op, field[MAX_STACK] stack, u32 stackIdx, field[MAX_OPS_] data, u32 dataIdx) -> (field[MAX_STACK], u32, u32):
+  stack = op == OP_PUSH ? opPushStack(stack, stackIdx, data, dataIdx) : stack
+  stackIdx = op == OP_PUSH ? opPushIdx(stackIdx) : stackIdx
+  u32 advance = 0
+  advance = op == OP_PUSH ? 1 : advance
+  return stack, stackIdx, advance
+
+// A simple calculator with private initial stack values
+// return value: top stack value
+def main(private field[MAX_STACK_] initialStack, private u32 initialStackIdx, field[MAX_OPS] ops) -> field:
+  field[STACK_OFFSET] padding = [0; STACK_OFFSET]
+
+  field[MAX_STACK] stack = [...padding, ...initialStack]
+  u32 stackIdx = initialStackIdx + STACK_OFFSET
+  field[MAX_OPS_] ops_ = [...ops, 0]
+  for u32 i in 0..MAX_OPS do
+    field op = ops[i]
+    stack, stackIdx = exec(op, stack, stackIdx)
+    u32 dataAdvance = 0
+    stack, stackIdx, dataAdvance = execWithData(op, stack, stackIdx, ops_, i)
+    i = i + dataAdvance
+  endfor
+  return stack[stackIdx-1]
